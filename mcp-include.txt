@@ -1,0 +1,6 @@
+Reactive, framework-agnostic browser connection-quality monitor. Reports a numeric
+0..5 quality verdict plus the latency / jitter / loss metrics behind it, via a
+Svelte-store-compatible subscribe contract. Active same-origin probing is the
+source of truth; an optional PerformanceObserver augments the rolling window
+with passive samples from real traffic. Includes hysteresis, visibility-pause,
+and online/offline handling.
