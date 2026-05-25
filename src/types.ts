@@ -54,8 +54,8 @@ export const QUALITY_LABEL: Readonly<Record<Quality, string>> = Object.freeze({
  * - `"active"`: produced by the periodic same-origin probe.
  * - `"passive"`: produced by the optional `PerformanceObserver` observing
  *   real Resource Timing entries.
- * - `"offline"`: the monitor short-circuited because `navigator.onLine === false`
- *   (or no samples have been collected yet while offline).
+ * - `"offline"`: the browser fired its `offline` event (or no samples have
+ *   been collected yet on first start).
  */
 export type Source = "active" | "passive" | "offline";
 

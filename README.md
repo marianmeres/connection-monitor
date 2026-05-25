@@ -78,7 +78,7 @@ with named constants exported for readability:
 
 | Constant            | Value | Default trigger (worst-first)              |
 | ------------------- | ----- | ------------------------------------------ |
-| `QUALITY.OFFLINE`   | 0     | `navigator.onLine === false` or all-fail   |
+| `QUALITY.OFFLINE`   | 0     | `offline` event or empty sample window     |
 | `QUALITY.VERY_POOR` | 1     | `avgRtt > 1500` or `lossRate > 0.4`        |
 | `QUALITY.POOR`      | 2     | `avgRtt > 600` or `jitter > 300`           |
 | `QUALITY.FAIR`      | 3     | `avgRtt > 250`                             |
@@ -178,6 +178,38 @@ const monitor = createConnectionMonitor({
 If no logger is provided, the monitor uses a no-op logger and produces no
 output.
 
+## Offline detection
+
+`status.quality === QUALITY.OFFLINE` means one of two things:
+
+- The browser fired its `offline` event (a real connectivity transition), or
+- The monitor has no samples yet (initial state, before the first probe).
+
+The package does **not** consult the polled `navigator.onLine` value. Per
+the WHATWG spec it is only a hint, and several real-world environments
+report `false` while `fetch()` works fine — plain iframes (some Chromium
+dev/preview setups), browsers behind VPNs or corporate proxies, headless
+browsers, and certain extensions. Trusting that value would pin the
+monitor at `OFFLINE` permanently in those environments.
+
+### Edge case: starting while genuinely offline
+
+If a session starts while the user is already offline, the `offline` event
+won't fire — events fire on transitions, and there is no transition. Probes
+fail, the window fills with failures, and the verdict becomes `VERY_POOR`
+with `lossRate: 1` (not `OFFLINE`). When the browser reconnects, the
+`online` event triggers an immediate probe and quality recovers.
+
+UIs that throttle on `quality <= QUALITY.POOR` (the common pattern) cover
+this automatically. UIs that branch specifically on `quality ===
+QUALITY.OFFLINE` and want to catch cold-start-offline can widen the check:
+
+```typescript
+const isLikelyOffline =
+    status.quality === QUALITY.OFFLINE ||
+    (status.quality === QUALITY.VERY_POOR && status.lossRate === 1);
+```
+
 ## Behavior Notes
 
 - **The factory auto-starts by default.** Set `autoStart: false` to wire
@@ -189,9 +221,10 @@ output.
   asynchronously on each change.
 - **`stop()` is reversible.** It detaches listeners and clears the probe loop,
   but `start()` can be called again to resume.
-- **Going offline (`navigator.onLine === false`) clears the sample window** —
+- **Going offline (the browser's `offline` event) clears the sample window** —
   stale samples don't survive a connectivity loss. The verdict snaps to
-  `OFFLINE` immediately.
+  `OFFLINE` immediately. See [Offline detection](#offline-detection) for the
+  full model and the cold-start edge case.
 - **SSR-safe.** All browser APIs are guarded; importing the package in
   Node/Deno does not throw, and `isBrowser()` returns false there.
 

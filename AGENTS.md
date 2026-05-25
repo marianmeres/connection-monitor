@@ -245,7 +245,10 @@ else                                         -> EXCELLENT (5)
 ```
 
 `OFFLINE` (0) is set outside `evaluateQuality()`: either explicitly when
-`navigator.onLine === false`, or as the empty-window default.
+the browser's `offline` event fires, or as the empty-window default. The
+polled `navigator.onLine` value is intentionally **not** consulted — it is
+under-specified by WHATWG and lies in several real-world environments
+(iframes, VPNs, headless browsers, some extensions).
 
 ### Hysteresis
 

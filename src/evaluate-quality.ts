@@ -97,8 +97,8 @@ export function evaluateQuality(
 	const okLatencies = samples.filter((s) => s.ok).map((s) => s.latency);
 	if (okLatencies.length === 0) {
 		// Every active probe failed and there are no passive samples — treat as
-		// `VERY_POOR` rather than `OFFLINE` (offline is reserved for
-		// `navigator.onLine === false` and is set by the monitor, not here).
+		// `VERY_POOR` rather than `OFFLINE` (offline is reserved for the
+		// browser's `offline` event and is set by the monitor, not here).
 		return {
 			quality: QUALITY.VERY_POOR,
 			avgRtt: null,

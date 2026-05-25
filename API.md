@@ -294,8 +294,9 @@ Use the [`QUALITY`](#quality-constant) constants for named comparisons.
 type Source = "active" | "passive" | "offline";
 ```
 
-Reflects which producer fed the most recent sample, or `"offline"` when the
-monitor short-circuited via `navigator.onLine === false`.
+Reflects which producer fed the most recent sample, or `"offline"` when
+the browser fired its `offline` event (or no samples have been collected
+yet on first start).
 
 ---
 

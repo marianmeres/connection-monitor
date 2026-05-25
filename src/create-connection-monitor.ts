@@ -102,14 +102,6 @@ export function createConnectionMonitor(
 	let inFlightProbe: Promise<void> | null = null;
 	const inFlightControllers = new Set<AbortController>();
 
-	function isOffline(): boolean {
-		return (
-			typeof navigator !== "undefined" &&
-			"onLine" in navigator &&
-			navigator.onLine === false
-		);
-	}
-
 	function publishStatus(next: ConnectionStatus): void {
 		const prev = status;
 		status = next;
@@ -200,10 +192,6 @@ export function createConnectionMonitor(
 		// samples when the loop tick and a manual `.probe()` race.
 		if (inFlightProbe) return inFlightProbe;
 
-		if (isOffline()) {
-			publishOffline();
-			return;
-		}
 		if (shouldSkipProbe()) return;
 
 		const controller = new AbortController();

@@ -205,6 +205,50 @@ Deno.test("probe() is a no-op when not running", async () => {
 	monitor.stop();
 });
 
+Deno.test("doProbe runs the fetcher even when navigator.onLine === false", async () => {
+	// Regression: previously `navigator.onLine === false` short-circuited the
+	// probe loop. Per WHATWG, that value is only a hint — environments like
+	// plain iframes, some VPNs, and headless browsers lie about it. The
+	// fetcher must run regardless; real disconnects come through the
+	// `offline` browser event.
+	const origDescriptor = Object.getOwnPropertyDescriptor(
+		globalThis.navigator,
+		"onLine",
+	);
+	Object.defineProperty(globalThis.navigator, "onLine", {
+		configurable: true,
+		get: () => false,
+	});
+	try {
+		const fetcher = makeFetcher(5);
+		const monitor = createConnectionMonitor({
+			autoStart: false,
+			fetcher,
+			interval: 60_000,
+		});
+		monitor.start();
+		await monitor.probe();
+		assertEquals(
+			fetcher.calls(),
+			1,
+			"fetcher should run despite navigator.onLine=false",
+		);
+		assertEquals(monitor.get().source, "active");
+		assertNotEquals(monitor.get().quality, QUALITY.OFFLINE);
+		monitor.stop();
+	} finally {
+		if (origDescriptor) {
+			Object.defineProperty(
+				globalThis.navigator,
+				"onLine",
+				origDescriptor,
+			);
+		} else {
+			delete (globalThis.navigator as { onLine?: boolean }).onLine;
+		}
+	}
+});
+
 Deno.test("autoStart=true starts immediately", async () => {
 	const fetcher = makeFetcher(5);
 	const monitor = createConnectionMonitor({
