@@ -113,6 +113,35 @@ const monitor = createConnectionMonitor({
 
 Passive mode is browser-only. In SSR / Node / Deno it silently no-ops.
 
+### When *not* to enable passive
+
+Passive samples are not free signal — they trade precision for coverage. Keep
+`passive: false` (the default) if any of the following apply:
+
+- **You need a clean network signal.** Active probes record full **RTT** (the
+  whole round trip to a `204` endpoint, dominated by network). Passive samples
+  record **TTFB** (`responseStart - requestStart`), which includes whatever the
+  server spent processing the resource. A slow CMS page or heavy API response
+  will look like a degraded network. Thresholds are tuned for RTT-style
+  numbers.
+- **You want a strict heartbeat.** When a recent passive sample looks healthy,
+  the next scheduled active probe is skipped — so loss-rate (computed only
+  over active samples) becomes lazier and brief outages can be masked. For
+  "is the API actually reachable?" semantics, keep it off.
+- **The window would be polluted by uncontrolled traffic.** The observer sees
+  every same-origin resource the page loads — analytics, prefetches, images,
+  third-party widgets — not just your probe endpoint.
+- **Cross-origin assets dominate the page.** Cross-origin entries without
+  `Timing-Allow-Origin` are filtered out, biasing the window toward
+  same-origin (often cached, often fast) resources.
+- **The page is idle after load.** With no real traffic, passive contributes
+  nothing — you pay the `PerformanceObserver` setup cost for no benefit.
+
+> **TTFB vs RTT, quickly:** _RTT_ is request-sent → full-response-received (the
+> whole round trip). _TTFB_ is request-sent → first-byte-received, and
+> includes server processing time. Active probes to a `204` endpoint
+> approximate pure network RTT; passive TTFB does not.
+
 ## Hysteresis
 
 By default the verdict reflects each rolling-window evaluation immediately.
